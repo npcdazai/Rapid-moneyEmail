@@ -19,10 +19,17 @@ import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import AllocationPanel from "./components/AllocationPanel";
 import { hasAnyMail, sectionForFolder } from "../lib/modules";
 
+const PAGE_SIZE_OPTIONS = [50, 100, 200];
+const EMPTY_FILTERS = { status: "", priority: "", unread: false, from: "", to: "" };
+
 export default function Dashboard() {
   const [folder, setFolder] = useState(FOLDERS[0]); // Inbox
   const [counts, setCounts] = useState(null);
   const [tickets, setTickets] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0); // 0-based
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -164,11 +171,19 @@ export default function Dashboard() {
     }
     setRefreshing(true);
     try {
-      const params = { ...folder.params };
+      const params = { ...folder.params, limit: pageSize, offset: page * pageSize };
       if (search.trim()) params.search = search.trim();
-      const [c, t] = await Promise.all([api.folders(), api.list(params)]);
+      // Additive: a user filter only applies when the folder doesn't already
+      // pin that field — so folder constraints are never overridden.
+      if (filters.status && !folder.params.status) params.status = filters.status;
+      if (filters.priority && !folder.params.priority) params.priority = filters.priority;
+      if (filters.unread && folder.params.unread == null) params.unread = "true";
+      if (filters.from) params.from = filters.from;
+      if (filters.to) params.to = filters.to;
+      const [c, res] = await Promise.all([api.folders(), api.list(params)]);
       setCounts(c);
-      setTickets(t);
+      setTickets(res.items || []);
+      setTotal(res.total || 0);
     } catch (e) {
       flash(`Error: ${e.message}`);
     } finally {
@@ -176,7 +191,7 @@ export default function Dashboard() {
       setRefreshing(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [folder, search, flash, user]);
+  }, [folder, search, page, pageSize, filters, flash, user]);
 
   useEffect(() => {
     setLoading(true);
@@ -191,14 +206,32 @@ export default function Dashboard() {
 
   const onSearchChange = (v) => {
     setSearch(v);
+    setPage(0);
     clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => refresh(), 350);
   };
 
   const selectFolder = (f) => {
     setFolder(f);
+    setPage(0);
     setSelectedId(null);
   };
+
+  const updateFilter = (patch) => {
+    setFilters((f) => ({ ...f, ...patch }));
+    setPage(0);
+  };
+
+  const clearFilters = () => {
+    setFilters(EMPTY_FILTERS);
+    setPage(0);
+  };
+  const changePageSize = (n) => {
+    setPageSize(n);
+    setPage(0);
+  };
+  const filtersActive =
+    filters.status || filters.priority || filters.unread || filters.from || filters.to;
 
   const selectTicket = (t) => {
     setSelectedId(t.id);
@@ -225,7 +258,12 @@ export default function Dashboard() {
   };
 
   const breachCount = counts?.breached_total ?? 0;
-  const subtitle = `${tickets.length} item${tickets.length === 1 ? "" : "s"}`;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const rangeStart = total === 0 ? 0 : page * pageSize + 1;
+  const rangeEnd = Math.min(total, (page + 1) * pageSize);
+  const subtitle = total
+    ? `${rangeStart}–${rangeEnd} of ${total}`
+    : "0 items";
 
   // Hold the UI until the session is verified (or we're bouncing to /login).
   if (!authChecked) {
@@ -399,6 +437,17 @@ export default function Dashboard() {
           onToggleFlag={toggleFlag}
           onRefresh={refresh}
           refreshing={refreshing}
+          filters={filters}
+          onFilterChange={updateFilter}
+          onClearFilters={clearFilters}
+          filtersActive={filtersActive}
+          statusLocked={!!folder.params.status}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          pageSize={pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageSizeChange={changePageSize}
         />
 
         {selectedId != null ? (

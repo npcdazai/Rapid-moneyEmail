@@ -6,6 +6,22 @@ import { api } from "../../../lib/api";
 
 const MIN = 8;
 
+// Defined at module scope (not inside the component) so its identity is stable
+// across re-renders — otherwise React remounts the subtree on every keystroke
+// and the password inputs lose focus.
+const Shell = ({ children }) => (
+  <div className="login-screen">
+    <div className="login-card">
+      <div className="login-brand">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/images/rapidmoney.png" alt="RapidMoney" />
+        <span>Support</span>
+      </div>
+      {children}
+    </div>
+  </div>
+);
+
 export default function CreatePasswordPage() {
   const [token, setToken] = useState(null); // null = still reading from URL
   const [password, setPassword] = useState("");
@@ -35,19 +51,6 @@ export default function CreatePasswordPage() {
       setBusy(false);
     }
   };
-
-  const Shell = ({ children }) => (
-    <div className="login-screen">
-      <div className="login-card">
-        <div className="login-brand">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/rapidmoney.png" alt="RapidMoney" />
-          <span>Support</span>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
 
   if (token === null) {
     return (
