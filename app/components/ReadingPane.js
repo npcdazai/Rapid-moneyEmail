@@ -14,6 +14,10 @@ import {
   X,
   FileText,
   Zap,
+  UserCheck,
+  UserX,
+  AlertTriangle,
+  Phone,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import RichTextEditor from "./RichTextEditor";
@@ -347,6 +351,60 @@ export default function ReadingPane({ ticketId, onChanged, onPatch, flash, canAu
           <span className="chip status">{ticket.status}</span>
           {ticket.sub_category && (
             <span className="chip status">{ticket.sub_category}</span>
+          )}
+          {ticket.matched_phone && (
+            <span className="chip status" title="10-digit number detected in this email">
+              <Phone size={12} style={{ verticalAlign: "-1px", marginRight: 4 }} />
+              {ticket.matched_phone}
+            </span>
+          )}
+        </div>
+
+        {ticket.needs_manual_review && (
+          <div className="review-banner">
+            <AlertTriangle size={18} />
+            <div>
+              <b>Flagged for manual review</b>
+              <div className="review-reason">
+                {ticket.manual_review_reason ||
+                  "No approved template confidently matched — handle manually."}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Customer master match (QRC Email Automation) */}
+        <div className={`cust-card ${ticket.customer ? "matched" : "unmatched"}`}>
+          <div className="cust-head">
+            {ticket.customer ? <UserCheck size={16} /> : <UserX size={16} />}
+            <span>
+              {ticket.customer
+                ? "Matched to customer master"
+                : "No customer-master match"}
+            </span>
+          </div>
+          {ticket.customer ? (
+            <div className="cust-grid">
+              <div><label>Customer ID (LAN)</label><span>{ticket.customer.lan || "—"}</span></div>
+              <div><label>Name</label><span>{ticket.customer.name || "—"}</span></div>
+              <div><label>Contact No</label><span>{ticket.customer.phone || ticket.matched_phone || "—"}</span></div>
+              <div><label>Email</label><span>{ticket.customer.email || "—"}</span></div>
+              <div><label>Application Id</label><span>{ticket.customer.application_id || "—"}</span></div>
+              <div><label>Loan Id</label><span>{ticket.customer.loan_id || "—"}</span></div>
+              <div><label>Lender</label><span>{ticket.customer.lenders_name || "—"}</span></div>
+            </div>
+          ) : (
+            <div className="muted" style={{ padding: "2px 0 0" }}>
+              {ticket.matched_phone
+                ? `Detected number ${ticket.matched_phone} was not found in the customer master.`
+                : "No 10-digit number detected and the sender's email isn't in the master."}
+            </div>
+          )}
+          {ticket.query_summary && (
+            <div className="cust-summary">
+              <label>Customer query</label>
+              <span>{ticket.query_summary}</span>
+            </div>
           )}
         </div>
 

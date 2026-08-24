@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Search, RefreshCw, X, AlertTriangle, Mail, BarChart3, Zap, LogOut, Loader2, Users, Lock, PenSquare } from "lucide-react";
+import { Search, RefreshCw, X, AlertTriangle, Mail, BarChart3, Zap, LogOut, Loader2, Users, Lock, PenSquare, Contact } from "lucide-react";
 import { api } from "../lib/api";
 import {
   getToken,
@@ -17,6 +17,7 @@ import ReadingPane from "./components/ReadingPane";
 import ComposeModal from "./components/ComposeModal";
 import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import AllocationPanel from "./components/AllocationPanel";
+import CustomersPanel from "./components/CustomersPanel";
 import { hasAnyMail, sectionForFolder } from "../lib/modules";
 
 const PAGE_SIZE_OPTIONS = [50, 100, 200];
@@ -33,7 +34,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(""); // immediate input value
+  const [debouncedSearch, setDebouncedSearch] = useState(""); // value used in queries
   const [toast, setToast] = useState(null);
   const [mode, setMode] = useState("mail"); // "mail" | "analytics"
   const [composing, setComposing] = useState(false);
@@ -42,16 +44,19 @@ export default function Dashboard() {
   const [authChecked, setAuthChecked] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const modeHydrated = useRef(false);
-  const searchTimer = useRef(null);
   const menuRef = useRef(null);
 
   // Allocated app modules drive which tabs/controls/folders are visible.
   const modules = user?.modules || [];
   const has = (k) => modules.includes(k);
   const hasMail = hasAnyMail(modules);
+  // Customer master is available to anyone who can view mail, run analytics, or
+  // manage auto-reply (import is gated to autoreply, export to analytics below).
+  const canCustomers = hasMail || has("analytics") || has("autoreply");
   const allowedModes = [
     ...(hasMail ? ["mail"] : []),
     ...(has("analytics") ? ["analytics"] : []),
+    ...(canCustomers ? ["customers"] : []),
     ...(has("admin") ? ["admin"] : []),
   ];
   // Folders the user may open (their section is allocated).
@@ -172,7 +177,7 @@ export default function Dashboard() {
     setRefreshing(true);
     try {
       const params = { ...folder.params, limit: pageSize, offset: page * pageSize };
-      if (search.trim()) params.search = search.trim();
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
       // Additive: a user filter only applies when the folder doesn't already
       // pin that field — so folder constraints are never overridden.
       if (filters.status && !folder.params.status) params.status = filters.status;
@@ -191,7 +196,18 @@ export default function Dashboard() {
       setRefreshing(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [folder, search, page, pageSize, filters, flash, user]);
+  }, [folder, debouncedSearch, page, pageSize, filters, flash, user]);
+
+  // Debounce the search box: 350ms after typing stops, commit the query value
+  // (and reset to page 1). Using a committed value avoids the stale-closure bug
+  // where a manual refresh() ran with an out-of-date search term.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(0);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [search]);
 
   useEffect(() => {
     setLoading(true);
@@ -205,10 +221,7 @@ export default function Dashboard() {
   }, [refresh]);
 
   const onSearchChange = (v) => {
-    setSearch(v);
-    setPage(0);
-    clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => refresh(), 350);
+    setSearch(v); // the debounce effect commits this to the query + resets page
   };
 
   const selectFolder = (f) => {
@@ -312,6 +325,11 @@ export default function Dashboard() {
             {has("analytics") && (
               <button className={mode === "analytics" ? "on" : ""} onClick={() => setMode("analytics")}>
                 <BarChart3 size={15} /> Analytics
+              </button>
+            )}
+            {canCustomers && (
+              <button className={mode === "customers" ? "on" : ""} onClick={() => setMode("customers")}>
+                <Contact size={15} /> Customers
               </button>
             )}
             {has("admin") && (
@@ -423,6 +441,12 @@ export default function Dashboard() {
         <AllocationPanel flash={flash} currentUserId={user?.id} />
       ) : mode === "analytics" ? (
         <AnalyticsDashboard />
+      ) : mode === "customers" ? (
+        <CustomersPanel
+          flash={flash}
+          canImport={has("autoreply")}
+          canExport={has("analytics")}
+        />
       ) : (
       <div className="workspace">
         <FolderNav active={folder.id} onSelect={selectFolder} counts={counts} modules={modules} onCompose={() => setComposing(true)} />

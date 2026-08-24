@@ -55,6 +55,8 @@ export const FOLDERS = [
 
   // Automation — emails the bot has auto-replied to
   { id: "auto_replied", name: "Auto-replied", Icon: Zap, params: { auto_replied: "true" }, countKey: "auto_replied_total", unreadKey: "auto_replied_unread", group: "automation" },
+  // Manual review — auto-reply couldn't confidently pick an approved template
+  { id: "manual_review", name: "Needs manual review", Icon: HelpCircle, params: { manual_review: "true" }, countKey: "manual_review_total", unreadKey: "manual_review_unread", group: "automation" },
 
   { id: "spam", name: "Spam/unimportant", Icon: Ban, params: { category: "spam" }, countKey: "cat_spam", group: "other" },
   { id: "uncategorized", name: "Uncategorized", Icon: Inbox, params: { uncategorized: "true" }, countKey: "uncategorized_total", group: "other" },

@@ -876,3 +876,72 @@ textarea:focus { border-color: var(--ol-blue); }
 .alloc-icon { background: none; border: none; color: var(--muted); cursor: pointer; padding: 5px; border-radius: 6px; }
 .alloc-icon:hover { background: var(--ol-sel); color: var(--p1); }
 .alloc-empty { text-align: center; color: var(--muted-2); padding: 28px; }
+
+/* ───────── Customer master (QRC Email Automation) ───────── */
+
+/* Matched-customer card + manual-review banner in the reading pane */
+.review-banner {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: #fdeeee; border: 1px solid #f3c3c3; color: #a4262c;
+  border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px;
+}
+.review-banner b { font-size: 13px; }
+.review-reason { color: #7a2b2e; margin-top: 2px; }
+
+.cust-card {
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; margin-bottom: 14px; background: var(--neutral-bg);
+}
+.cust-card.matched { border-color: var(--border-strong); background: var(--ol-blue-light); }
+.cust-card.unmatched { background: #fafafa; }
+.cust-head {
+  display: flex; align-items: center; gap: 7px;
+  font-weight: 700; font-size: 12.5px; color: var(--text); margin-bottom: 8px;
+}
+.cust-card.matched .cust-head { color: var(--ol-blue-dark); }
+.cust-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px 16px;
+}
+.cust-grid > div { display: flex; flex-direction: column; }
+.cust-grid label, .cust-summary label {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--muted); font-weight: 700;
+}
+.cust-grid span { font-size: 13px; color: var(--text); word-break: break-word; }
+.cust-summary { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border-strong); }
+.cust-summary span { display: block; font-size: 13px; color: var(--text); margin-top: 2px; }
+
+/* Customers workspace (import / list / export) */
+.customers-panel { flex: 1; display: flex; flex-direction: column; min-height: 0; background: var(--panel); }
+.cust-toolbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--neutral-bg);
+}
+.cust-title { display: flex; align-items: center; gap: 7px; font-weight: 800; font-size: 15px; color: var(--text); }
+.cust-count {
+  background: var(--ol-sel); color: var(--ol-blue-dark); font-size: 12px; font-weight: 700;
+  padding: 1px 9px; border-radius: 999px;
+}
+.cust-search {
+  display: flex; align-items: center; gap: 7px; flex: 1; min-width: 220px; max-width: 460px;
+  border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px 10px; background: #fff;
+}
+.cust-search input { border: none; outline: none; flex: 1; font-size: 13px; background: transparent; color: var(--text); }
+.cust-export { display: flex; align-items: center; gap: 6px; }
+.cust-export input[type="date"] {
+  border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px 8px; font-size: 12.5px; color: var(--text);
+}
+.cust-table-wrap { flex: 1; overflow: auto; padding: 0; }
+.cust-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cust-table thead th {
+  position: sticky; top: 0; background: var(--neutral-bg); z-index: 1;
+  text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--muted); font-weight: 700; padding: 10px 14px; border-bottom: 1px solid var(--border);
+}
+.cust-table tbody td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text); white-space: nowrap; }
+.cust-table tbody tr:hover { background: var(--ol-sel); }
+.cust-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  padding: 60px 20px; color: var(--muted); text-align: center;
+}
