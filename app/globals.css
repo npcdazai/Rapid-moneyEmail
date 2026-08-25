@@ -1097,3 +1097,10 @@ textarea:focus { border-color: var(--ol-blue); }
 }
 .tpl-field input:focus { outline: none; border-color: var(--ol-blue); }
 .tpl-editor .rte-area { min-height: 200px; }
+
+/* Customer-query preset dropdown in the entry form */
+.query-select {
+  width: 100%; border: 1px solid var(--border-strong); border-radius: 8px;
+  padding: 8px 10px; font-size: 13.5px; color: var(--text); background: #fff;
+}
+.query-select:focus { outline: none; border-color: var(--ol-blue); }

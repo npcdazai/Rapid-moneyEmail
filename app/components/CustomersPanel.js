@@ -14,6 +14,29 @@ const fmtDay = (d) =>
 const TYPE_LABEL = { Q: "Query", R: "Request", C: "Complaint" };
 const typeOfMail = (cat) => TYPE_LABEL[CATEGORIES[cat]?.group] || "—";
 
+// Preset customer-query options shown in the entry form.
+const QUERY_PRESETS = [
+  "Asking for Disbursement",
+  "Asking For Assessment Fee Refund",
+  "Account activation request",
+  "Lead ID not found",
+  "Double payment refund",
+  "Loan application status – PAN verification",
+  "Loan application rejected – PAN verification",
+  "Loan application rejected – Address submission",
+  "Selfie Error",
+  "Loan application status – Address submission",
+];
+
+// Strip tags to compare a stored query against the presets.
+const plainText = (html) => (html || "").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim();
+// Decide the dropdown value when editing an existing entry.
+const seedQueryChoice = (html) => {
+  const p = plainText(html);
+  if (QUERY_PRESETS.includes(p)) return p;
+  return html ? "__custom__" : "";
+};
+
 // Earliest outbound reply = the date we responded to the mail.
 const responseDate = (t) => {
   const outs = (t.replies || [])
@@ -51,7 +74,7 @@ export default function CustomersPanel({ flash, canImport = false, canExport = f
   // Open the add/edit form (seeded from an existing entry, or blank for a new one).
   const openForm = (seed) => {
     setForm(
-      seed || { id: null, complain_date: "", type_of_mail: "Complaint", response_date: "", customer_query: "", responded_to_customer: "" }
+      seed || { id: null, complain_date: "", type_of_mail: "Complaint", response_date: "", customer_query: "", responded_to_customer: "", query_choice: "" }
     );
     setFormKey((k) => k + 1);
   };
@@ -76,10 +99,14 @@ export default function CustomersPanel({ flash, canImport = false, canExport = f
       const h = (el?.innerHTML || "").trim();
       return h && h !== "<br>" ? h : null;
     };
+    // Customer query: a preset value, or custom rich text.
+    let customer_query = null;
+    if (form.query_choice === "__custom__") customer_query = htmlOrNull(queryRef.current);
+    else if (form.query_choice) customer_query = form.query_choice;
     const payload = {
       complain_date: form.complain_date || null,
       type_of_mail: form.type_of_mail || null,
-      customer_query: htmlOrNull(queryRef.current),
+      customer_query,
       response_date: form.response_date || null,
       responded_to_customer: htmlOrNull(respRef.current),
     };
@@ -501,7 +528,22 @@ export default function CustomersPanel({ flash, canImport = false, canExport = f
                   </div>
                   <div className="rte-field">
                     <span className="rte-label">Customer Query</span>
-                    <RichTextEditor ref={queryRef} placeholder="Describe the customer's query…" />
+                    <select
+                      className="query-select"
+                      value={form.query_choice}
+                      onChange={(e) => setForm({ ...form, query_choice: e.target.value })}
+                    >
+                      <option value="">Select a query…</option>
+                      {QUERY_PRESETS.map((q) => (
+                        <option key={q} value={q}>{q}</option>
+                      ))}
+                      <option value="__custom__">✏️ Custom / other…</option>
+                    </select>
+                    {form.query_choice === "__custom__" && (
+                      <div style={{ marginTop: 8 }}>
+                        <RichTextEditor ref={queryRef} placeholder="Describe the customer's query…" />
+                      </div>
+                    )}
                   </div>
                   <div className="rte-field">
                     <span className="rte-label">Responded to Customer</span>
@@ -552,7 +594,7 @@ export default function CustomersPanel({ flash, canImport = false, canExport = f
                         <td className="cust-actions-col">
                           <div className="cust-row-actions">
                             <button className="cust-act" title="Edit"
-                              onClick={() => openForm({ id: en.id, complain_date: en.complain_date || "", type_of_mail: en.type_of_mail || "Complaint", response_date: en.response_date || "", customer_query: en.customer_query || "", responded_to_customer: en.responded_to_customer || "" })}>
+                              onClick={() => openForm({ id: en.id, complain_date: en.complain_date || "", type_of_mail: en.type_of_mail || "Complaint", response_date: en.response_date || "", customer_query: en.customer_query || "", responded_to_customer: en.responded_to_customer || "", query_choice: seedQueryChoice(en.customer_query) })}>
                               <Pencil size={14} />
                             </button>
                             <button className="cust-act" title="Delete" onClick={() => removeEntry(en.id)}>
