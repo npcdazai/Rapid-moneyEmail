@@ -28,12 +28,26 @@ const QUERY_PRESETS = [
   "Loan application status – Address submission",
 ];
 
-// Strip tags to compare a stored query against the presets.
+// Preset "responded to customer" options shown in the entry form.
+const RESPONSE_PRESETS = [
+  "Customer Haven't Received the Disbursement Yet",
+  "Convince the Customer that Fee is Non-Refundable",
+  "Account Activated",
+  "Under Process",
+  "Inprogress",
+  "Rejected",
+  "Loan Application Status Required – Address Submission",
+  "Pending",
+  "Resolved",
+  "request initiated",
+];
+
+// Strip tags to compare a stored value against the presets.
 const plainText = (html) => (html || "").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim();
 // Decide the dropdown value when editing an existing entry.
-const seedQueryChoice = (html) => {
+const seedChoice = (html, presets) => {
   const p = plainText(html);
-  if (QUERY_PRESETS.includes(p)) return p;
+  if (presets.includes(p)) return p;
   return html ? "__custom__" : "";
 };
 
@@ -74,7 +88,7 @@ export default function CustomersPanel({ flash, canImport = false, canExport = f
   // Open the add/edit form (seeded from an existing entry, or blank for a new one).
   const openForm = (seed) => {
     setForm(
-      seed || { id: null, complain_date: "", type_of_mail: "Complaint", response_date: "", customer_query: "", responded_to_customer: "", query_choice: "" }
+      seed || { id: null, complain_date: "", type_of_mail: "Complaint", response_date: "", customer_query: "", responded_to_customer: "", query_choice: "", response_choice: "" }
     );
     setFormKey((k) => k + 1);
   };
@@ -99,16 +113,19 @@ export default function CustomersPanel({ flash, canImport = false, canExport = f
       const h = (el?.innerHTML || "").trim();
       return h && h !== "<br>" ? h : null;
     };
-    // Customer query: a preset value, or custom rich text.
+    // Customer query & response: a preset value, or custom rich text.
     let customer_query = null;
     if (form.query_choice === "__custom__") customer_query = htmlOrNull(queryRef.current);
     else if (form.query_choice) customer_query = form.query_choice;
+    let responded_to_customer = null;
+    if (form.response_choice === "__custom__") responded_to_customer = htmlOrNull(respRef.current);
+    else if (form.response_choice) responded_to_customer = form.response_choice;
     const payload = {
       complain_date: form.complain_date || null,
       type_of_mail: form.type_of_mail || null,
       customer_query,
       response_date: form.response_date || null,
-      responded_to_customer: htmlOrNull(respRef.current),
+      responded_to_customer,
     };
     setSavingEntry(true);
     try {
@@ -547,7 +564,22 @@ export default function CustomersPanel({ flash, canImport = false, canExport = f
                   </div>
                   <div className="rte-field">
                     <span className="rte-label">Responded to Customer</span>
-                    <RichTextEditor ref={respRef} placeholder="What we replied to the customer…" />
+                    <select
+                      className="query-select"
+                      value={form.response_choice}
+                      onChange={(e) => setForm({ ...form, response_choice: e.target.value })}
+                    >
+                      <option value="">Select a response…</option>
+                      {RESPONSE_PRESETS.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                      <option value="__custom__">✏️ Custom / other…</option>
+                    </select>
+                    {form.response_choice === "__custom__" && (
+                      <div style={{ marginTop: 8 }}>
+                        <RichTextEditor ref={respRef} placeholder="What we replied to the customer…" />
+                      </div>
+                    )}
                   </div>
                   <div className="entry-form-actions">
                     <button className="btn primary" onClick={saveEntry} disabled={savingEntry}>
@@ -594,7 +626,7 @@ export default function CustomersPanel({ flash, canImport = false, canExport = f
                         <td className="cust-actions-col">
                           <div className="cust-row-actions">
                             <button className="cust-act" title="Edit"
-                              onClick={() => openForm({ id: en.id, complain_date: en.complain_date || "", type_of_mail: en.type_of_mail || "Complaint", response_date: en.response_date || "", customer_query: en.customer_query || "", responded_to_customer: en.responded_to_customer || "", query_choice: seedQueryChoice(en.customer_query) })}>
+                              onClick={() => openForm({ id: en.id, complain_date: en.complain_date || "", type_of_mail: en.type_of_mail || "Complaint", response_date: en.response_date || "", customer_query: en.customer_query || "", responded_to_customer: en.responded_to_customer || "", query_choice: seedChoice(en.customer_query, QUERY_PRESETS), response_choice: seedChoice(en.responded_to_customer, RESPONSE_PRESETS) })}>
                               <Pencil size={14} />
                             </button>
                             <button className="cust-act" title="Delete" onClick={() => removeEntry(en.id)}>
