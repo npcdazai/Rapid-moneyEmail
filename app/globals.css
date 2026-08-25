@@ -1074,3 +1074,26 @@ textarea:focus { border-color: var(--ol-blue); }
 .q-html ul, .q-html ol { margin: 2px 0; padding-left: 18px; }
 .q-html a { color: var(--ol-blue-dark); }
 .cust-act.primary-act { border-color: var(--ol-blue); color: var(--ol-blue-dark); background: var(--ol-blue-light); font-weight: 700; }
+
+/* Templates section */
+.tpl-layout { flex: 1; display: grid; grid-template-columns: 320px 1fr; min-height: 0; }
+.tpl-list { border-right: 1px solid var(--border); overflow-y: auto; padding: 8px; }
+.tpl-item {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  border: 1px solid var(--border); background: #fff; border-radius: 10px;
+  padding: 10px 12px; margin-bottom: 8px;
+}
+.tpl-item:hover { border-color: var(--border-strong); background: var(--neutral-bg); }
+.tpl-item.active { border-color: var(--ol-blue); background: var(--ol-blue-light); }
+.tpl-item-name { font-weight: 700; font-size: 13.5px; color: var(--text); }
+.tpl-item-sub { font-size: 12px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tpl-editor { padding: 18px 20px; overflow-y: auto; }
+.tpl-editor-title { font-weight: 800; font-size: 14px; color: var(--text); margin-bottom: 14px; }
+.tpl-field { display: block; margin-bottom: 14px; }
+.tpl-field > span { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .02em; margin-bottom: 5px; }
+.tpl-field input {
+  width: 100%; border: 1px solid var(--border-strong); border-radius: 8px;
+  padding: 9px 11px; font-size: 14px; color: var(--text); background: #fff;
+}
+.tpl-field input:focus { outline: none; border-color: var(--ol-blue); }
+.tpl-editor .rte-area { min-height: 200px; }

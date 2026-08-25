@@ -30,7 +30,6 @@ import {
   catStyle,
   CATEGORIES,
   CATEGORY_CODES,
-  TEMPLATES,
 } from "../../lib/format";
 
 const STATUSES = [
@@ -51,8 +50,14 @@ export default function ReadingPane({ ticketId, onChanged, onPatch, flash, canAu
   const [replyEmpty, setReplyEmpty] = useState(true);
   const [cc, setCc] = useState("");
   const [showCc, setShowCc] = useState(false);
+  const [templates, setTemplates] = useState([]);
   const editorRef = useRef(null);
   const fileRef = useRef(null);
+
+  // Load user-managed reply templates once.
+  useEffect(() => {
+    api.templates.list().then((r) => setTemplates(r.items || [])).catch(() => {});
+  }, []);
 
   const updateEmpty = () =>
     setReplyEmpty(!editorRef.current?.innerText.trim());
@@ -171,14 +176,15 @@ export default function ReadingPane({ ticketId, onChanged, onPatch, flash, canAu
   const applyTemplate = (tpl) => {
     const first = name.split(" ")[0] || "Customer";
     // Auto-fill the placeholders we know; leave the rest as {{...}} for the agent.
-    const filled = tpl.body
+    const filled = (tpl.body || "")
       .replaceAll("{{customer_name}}", first)
       .replaceAll("{name}", first)
       .replaceAll("{{support_email}}", "support@rapidmoney.in")
       .replaceAll("{{grievance_email}}", "grievance@rapidmoney.in")
       .replaceAll("{{app_link}}", "https://rapidmoney.in/help")
       .replaceAll("{{ticket_id}}", ticket.reference || "{{ticket_id}}");
-    const html = filled.replace(/\n/g, "<br>");
+    // User templates are stored as HTML; only convert newlines for plain text.
+    const html = /<[a-z][\s\S]*>/i.test(filled) ? filled : filled.replace(/\n/g, "<br>");
     setShowReply(true);
     setTimeout(() => {
       if (editorRef.current) {
@@ -477,23 +483,19 @@ export default function ReadingPane({ ticketId, onChanged, onPatch, flash, canAu
             <select
               defaultValue=""
               onChange={(e) => {
-                const tpl = TEMPLATES[Number(e.target.value)];
+                const tpl = templates.find((t) => String(t.id) === e.target.value);
                 if (tpl) applyTemplate(tpl);
                 e.target.value = "";
               }}
             >
               <option value="">Insert template…</option>
-              {["Queries", "Requests", "Complaints"].map((g) => (
-                <optgroup key={g} label={g}>
-                  {TEMPLATES.map((t, i) =>
-                    t.group === g ? (
-                      <option key={i} value={i}>
-                        {t.label}
-                      </option>
-                    ) : null
-                  )}
-                </optgroup>
-              ))}
+              {templates.length === 0 ? (
+                <option value="" disabled>No templates — create them in the Templates tab</option>
+              ) : (
+                templates.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))
+              )}
             </select>
           </div>
           {showCc && (

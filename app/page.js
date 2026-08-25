@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Search, RefreshCw, X, AlertTriangle, Mail, BarChart3, Zap, LogOut, Loader2, Users, Lock, PenSquare, Contact, MessageSquare } from "lucide-react";
+import { Search, RefreshCw, X, AlertTriangle, Mail, BarChart3, Zap, LogOut, Loader2, Users, Lock, PenSquare, Contact, FileText } from "lucide-react";
 import { api } from "../lib/api";
 import {
   getToken,
@@ -18,7 +18,7 @@ import ComposeModal from "./components/ComposeModal";
 import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import AllocationPanel from "./components/AllocationPanel";
 import CustomersPanel from "./components/CustomersPanel";
-import QueriesPanel from "./components/QueriesPanel";
+import TemplatesPanel from "./components/TemplatesPanel";
 import { hasAnyMail, sectionForFolder } from "../lib/modules";
 
 const PAGE_SIZE_OPTIONS = [50, 100, 200];
@@ -58,7 +58,7 @@ export default function Dashboard() {
     ...(hasMail ? ["mail"] : []),
     ...(has("analytics") ? ["analytics"] : []),
     ...(canCustomers ? ["customers"] : []),
-    ...(hasMail ? ["queries"] : []),
+    ...(hasMail ? ["templates"] : []),
     ...(has("admin") ? ["admin"] : []),
   ];
   // Folders the user may open (their section is allocated).
@@ -335,8 +335,8 @@ export default function Dashboard() {
               </button>
             )}
             {hasMail && (
-              <button className={mode === "queries" ? "on" : ""} onClick={() => setMode("queries")}>
-                <MessageSquare size={15} /> Queries
+              <button className={mode === "templates" ? "on" : ""} onClick={() => setMode("templates")}>
+                <FileText size={15} /> Templates
               </button>
             )}
             {has("admin") && (
@@ -454,8 +454,8 @@ export default function Dashboard() {
           canImport={has("autoreply")}
           canExport={has("analytics")}
         />
-      ) : mode === "queries" ? (
-        <QueriesPanel flash={flash} />
+      ) : mode === "templates" ? (
+        <TemplatesPanel flash={flash} />
       ) : (
       <div className="workspace">
         <FolderNav active={folder.id} onSelect={selectFolder} counts={counts} modules={modules} onCompose={() => setComposing(true)} />
