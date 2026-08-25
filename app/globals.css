@@ -945,3 +945,132 @@ textarea:focus { border-color: var(--ol-blue); }
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
   padding: 60px 20px; color: var(--muted); text-align: center;
 }
+
+/* Destructive action button (Clear customer data) */
+.btn.danger { color: #fff; background: var(--p1); border-color: var(--p1); }
+.btn.danger:hover { background: #b4282c; border-color: #b4282c; }
+.btn.danger:disabled { opacity: .45; }
+
+/* Customer correspondence modal (opened via the row's Open button) */
+.cust-modal {
+  position: fixed; z-index: 91; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 960px; max-width: 96vw; max-height: 88vh; overflow-y: auto;
+  background: #fff; border: 1px solid var(--border); border-radius: 16px;
+  box-shadow: 0 18px 60px rgba(20,40,15,.28);
+}
+.cust-modal-head {
+  position: sticky; top: 0; z-index: 1; display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 12px; padding: 14px 18px;
+  background: var(--neutral-bg); border-bottom: 1px solid var(--border); border-radius: 16px 16px 0 0;
+}
+.cust-modal-name { font-weight: 800; font-size: 16px; color: var(--text); }
+.cust-modal-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; word-break: break-word; }
+.cust-modal-body { padding: 14px 18px 18px; }
+.cust-tk { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+.cust-tk-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.cust-tk-subj { font-weight: 700; font-size: 14px; color: var(--text); }
+.cust-tk-when { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.cust-tk-tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 2px; }
+.tk-block { margin-top: 10px; }
+.tk-block .lbl {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--muted); font-weight: 700; margin-bottom: 4px;
+}
+.tk-meta { font-size: 11px; color: var(--muted); margin: 6px 0 3px; }
+.tk-msg {
+  white-space: pre-wrap; word-break: break-word; font-size: 13px; color: var(--text);
+  background: var(--neutral-bg); border-radius: 8px; padding: 8px 10px; line-height: 1.5;
+}
+.tk-msg.out { background: var(--ol-blue-light); }
+
+/* Customer row action buttons (Open / Copy) */
+.cust-actions-col { white-space: nowrap; width: 1%; }
+.cust-row-actions { display: inline-flex; gap: 6px; }
+.cust-act {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 1px solid var(--border-strong); background: #fff; color: var(--text);
+  border-radius: 7px; padding: 4px 9px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.cust-act:hover { background: var(--ol-sel); border-color: var(--ol-blue); color: var(--ol-blue-dark); }
+.cust-act:active { transform: translateY(0.5px); }
+
+/* Customer table filter dropdowns */
+.cust-filter {
+  border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px 8px;
+  font-size: 12.5px; color: var(--text); background: #fff; max-width: 220px;
+}
+.cust-filter:focus { outline: none; border-color: var(--ol-blue); }
+
+/* Customer Queries table */
+.q-summary { max-width: 340px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.q-resp { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; }
+.q-resp.yes { color: var(--green); }
+.q-resp.no { color: var(--amber); }
+
+/* Live inbox list in the customer modal */
+.inbox-list { display: flex; flex-direction: column; gap: 4px; }
+.inbox-item {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--neutral-bg);
+}
+.inbox-item.unread { border-color: var(--ol-blue); background: var(--ol-blue-light); }
+.inbox-subj { font-size: 13px; color: var(--text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inbox-item.unread .inbox-subj::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--ol-blue); margin-right: 7px; vertical-align: middle;
+}
+.inbox-date { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+
+/* Customer modal: inbox status line + Support-sheet columns table */
+.inbox-status {
+  display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted);
+  background: var(--neutral-bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; margin-bottom: 12px;
+}
+.modal-tk-table { width: 100%; }
+.modal-tk-table th { position: static; }
+.modal-tk-table td { white-space: normal; vertical-align: top; }
+.modal-tk-table .q-summary { max-width: 360px; white-space: normal; }
+
+/* Manual QRC entry editing in the customer modal */
+.entry-head { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 8px; }
+.entry-form-row td { background: var(--ol-blue-light); }
+.entry-form-row input[type="date"],
+.entry-form-row input[type="text"],
+.entry-form-row select {
+  width: 100%; border: 1px solid var(--border-strong); border-radius: 6px;
+  padding: 5px 7px; font-size: 12.5px; color: var(--text); background: #fff;
+}
+.entry-form-row input:focus, .entry-form-row select:focus { outline: none; border-color: var(--ol-blue); }
+
+/* Pretty add/edit form card in the customer modal */
+.entry-form {
+  border: 1px solid var(--border-strong); border-radius: 12px; padding: 14px 16px;
+  background: var(--ol-blue-light); margin-bottom: 14px;
+}
+.entry-form-title { font-weight: 800; font-size: 13px; color: var(--ol-blue-dark); margin-bottom: 10px; }
+.entry-form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+.entry-form-grid label { display: flex; flex-direction: column; gap: 4px; }
+.entry-form-grid label span { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .02em; }
+.entry-form-grid input, .entry-form-grid select {
+  border: 1px solid var(--border-strong); border-radius: 8px; padding: 7px 9px; font-size: 13px; background: #fff; color: var(--text);
+}
+.entry-form-grid input:focus, .entry-form-grid select:focus { outline: none; border-color: var(--ol-blue); }
+.rte-field { margin-bottom: 12px; }
+.rte-label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .02em; margin-bottom: 5px; }
+.entry-form .rte { background: #fff; border-radius: 10px; }
+.entry-form .rte-area { min-height: 80px; }
+.entry-form-actions { display: flex; gap: 8px; }
+
+/* Type-of-mail badge */
+.type-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: #f3f2f1; color: #555; }
+.type-badge.query { background: #e7eefb; color: #2563c9; }
+.type-badge.request { background: #e0f5f2; color: #0f9d8f; }
+.type-badge.complaint { background: #fdeeee; color: #d13438; }
+
+/* Rich-text (HTML) cells in the log table */
+.q-html { max-width: 260px; max-height: 120px; overflow: auto; white-space: normal; font-size: 12.5px; line-height: 1.5; }
+.q-html p { margin: 0 0 4px; }
+.q-html ul, .q-html ol { margin: 2px 0; padding-left: 18px; }
+.q-html a { color: var(--ol-blue-dark); }
+.cust-act.primary-act { border-color: var(--ol-blue); color: var(--ol-blue-dark); background: var(--ol-blue-light); font-weight: 700; }
