@@ -1104,3 +1104,17 @@ textarea:focus { border-color: var(--ol-blue); }
   padding: 8px 10px; font-size: 13.5px; color: var(--text); background: #fff;
 }
 .query-select:focus { outline: none; border-color: var(--ol-blue); }
+
+/* Import progress bar */
+.import-progress { padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--neutral-bg); }
+.import-progress-info { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text); font-weight: 600; margin-bottom: 6px; }
+.import-progress-pct { color: var(--ol-blue-dark); }
+.import-progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.import-progress-fill {
+  height: 100%; background: linear-gradient(90deg, var(--rapid-green-2), var(--rapid-green));
+  border-radius: 999px; transition: width .2s ease;
+}
+.import-progress-fill.indeterminate {
+  width: 40% !important; animation: import-slide 1.1s ease-in-out infinite;
+}
+@keyframes import-slide { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }

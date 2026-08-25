@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Search, Upload, Download, Loader2, Users, RefreshCw, Trash2, X, Eye, Copy, Inbox, Plus, Pencil, Check } from "lucide-react";
 import { api } from "../../lib/api";
+import { getToken } from "../../lib/auth";
 import { fmtDate, CATEGORIES } from "../../lib/format";
 import RichTextEditor from "./RichTextEditor";
 
@@ -72,6 +73,7 @@ export default function CustomersPanel({ flash, canImport = false, canExport = f
   const [missing, setMissing] = useState("");
   const [lenders, setLenders] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [importProgress, setImportProgress] = useState(null); // { pct, done, total, phase } | null
   const [exportRange, setExportRange] = useState({ from: "", to: "" });
   const [detail, setDetail] = useState(null); // { customer, tickets } | null
   const [detailLoading, setDetailLoading] = useState(false);
@@ -238,19 +240,74 @@ export default function CustomersPanel({ flash, canImport = false, canExport = f
     const file = (fileList || [])[0];
     if (!file) return;
     setBusy(true);
+    setImportProgress({ pct: 0, done: 0, total: 0, phase: "uploading" });
     try {
-      // Stream the raw file to the backend (no base64 — handles large sheets).
-      const res = await api.customers.importFile(file);
-      flash?.(
-        `Imported "${file.name}": ${res.inserted} new, ${res.updated} updated${
-          res.skipped ? `, ${res.skipped} skipped` : ""
-        }`
-      );
+      // Upload the file; the server parses it (handles very large sheets) and
+      // streams back NDJSON progress lines that drive the progress bar.
+      const token = getToken();
+      const res = await fetch("/api/customers/import-stream", {
+        method: "POST",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "Content-Type": file.type || "application/octet-stream",
+        },
+        body: file,
+      });
+      if (!res.ok || !res.body) {
+        let detail = res.statusText;
+        try { detail = (await res.json()).detail || detail; } catch {}
+        throw new Error(detail);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let summary = null;
+      let streamErr = null;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let nl;
+        while ((nl = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          if (!line) continue;
+          let msg;
+          try { msg = JSON.parse(line); } catch { continue; }
+          if (msg.error) streamErr = msg.error;
+          if (msg.summary) summary = msg;
+          if (msg.phase) {
+            setImportProgress({
+              phase: msg.phase,
+              done: msg.done || 0,
+              total: msg.total || 0,
+              pct: msg.total ? Math.round((msg.done / msg.total) * 100) : 0,
+            });
+          }
+        }
+      }
+      if (streamErr) throw new Error(streamErr);
+      const ins = summary?.inserted || 0;
+      const upd = summary?.updated || 0;
+      if (ins === 0 && upd === 0) {
+        // Nothing matched — surface the detected columns so the mismatch is clear.
+        const detected = summary?.detectedCols || [];
+        const heads = (summary?.headers || []).filter(Boolean).slice(0, 12).join(", ");
+        if (detected.length === 0) {
+          flash?.(`No recognizable columns found. Detected headers: ${heads || "none"}. Need at least LAN / Contact No / Email / Application Id / Loan Id.`);
+        } else {
+          flash?.(`0 rows imported — columns matched (${detected.join(", ")}) but no rows had a usable identifier value.`);
+        }
+      } else {
+        flash?.(`Imported "${file.name}": ${ins} new, ${upd} updated${summary?.skipped ? `, ${summary.skipped} skipped` : ""}`);
+      }
       await load();
     } catch (e) {
       flash?.(`Import failed: ${e.message}`);
     } finally {
       setBusy(false);
+      setImportProgress(null);
       if (fileRef.current) fileRef.current.value = "";
     }
   };
@@ -381,7 +438,8 @@ export default function CustomersPanel({ flash, canImport = false, canExport = f
               onClick={() => fileRef.current?.click()}
               title="Import a customer-master Excel/CSV sheet"
             >
-              {busy ? <Loader2 size={15} className="spin" /> : <Upload size={15} />} Import sheet
+              {busy ? <Loader2 size={15} className="spin" /> : <Upload size={15} />}{" "}
+              {busy ? (importProgress?.phase === "importing" ? `Importing ${importProgress.pct}%` : "Uploading…") : "Import sheet"}
             </button>
           </>
         )}
@@ -418,6 +476,28 @@ export default function CustomersPanel({ flash, canImport = false, canExport = f
           </div>
         )}
       </div>
+
+      {importProgress && (
+        <div className="import-progress">
+          <div className="import-progress-info">
+            <span>
+              {importProgress.phase === "uploading" && "Uploading file…"}
+              {importProgress.phase === "parsing" && "Parsing workbook on the server…"}
+              {importProgress.phase === "importing" &&
+                `Importing ${importProgress.done.toLocaleString()} / ${importProgress.total.toLocaleString()} rows`}
+            </span>
+            <span className="import-progress-pct">
+              {importProgress.phase === "importing" ? `${importProgress.pct}%` : ""}
+            </span>
+          </div>
+          <div className="import-progress-track">
+            <div
+              className={`import-progress-fill ${importProgress.phase !== "importing" ? "indeterminate" : ""}`}
+              style={{ width: `${importProgress.pct}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="cust-table-wrap">
         {loading ? (
