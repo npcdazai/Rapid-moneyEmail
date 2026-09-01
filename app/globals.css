@@ -1118,3 +1118,14 @@ textarea:focus { border-color: var(--ol-blue); }
   width: 40% !important; animation: import-slide 1.1s ease-in-out infinite;
 }
 @keyframes import-slide { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
+
+/* Sync Mail button (ribbon) */
+.ribbon .sync-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.10);
+  color: #fff; font-size: 12px; font-weight: 600; cursor: pointer;
+  padding: 6px 12px; border-radius: 999px; white-space: nowrap;
+  transition: background .15s ease, border-color .15s ease;
+}
+.ribbon .sync-btn:hover:not(:disabled) { background: rgba(255,255,255,.18); border-color: var(--rapid-green); }
+.ribbon .sync-btn:disabled { opacity: .6; cursor: default; }

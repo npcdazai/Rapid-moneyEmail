@@ -41,6 +41,7 @@ export default function Dashboard() {
   const [mode, setMode] = useState("mail"); // "mail" | "analytics"
   const [composing, setComposing] = useState(false);
   const [autoReply, setAutoReply] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -117,6 +118,28 @@ export default function Dashboard() {
   useEffect(() => {
     api.getSettings().then((s) => setAutoReply(!!s.autoReplyEnabled)).catch(() => {});
   }, []);
+
+  // Manually fetch new mail from the inbox now, then refresh the list.
+  const syncMail = async () => {
+    if (syncing) return;
+    setSyncing(true);
+    try {
+      const r = await api.syncMail();
+      flash(
+        r.busy
+          ? "A sync is already running…"
+          : r.queued
+            ? `Fetching ${r.queued} new message${r.queued === 1 ? "" : "s"}…`
+            : "No new mail found"
+      );
+      // give the worker a moment to ingest the queued mail, then refresh
+      setTimeout(() => refresh(), 3500);
+    } catch (e) {
+      flash(`Sync failed: ${e.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const toggleAutoReply = async () => {
     try {
@@ -348,6 +371,17 @@ export default function Dashboard() {
         )}
 
         <div className="right">
+          {hasMail && (
+            <button
+              className="sync-btn"
+              onClick={syncMail}
+              disabled={syncing}
+              title="Sync mail — fetch newly-arrived emails from the inbox now"
+            >
+              <RefreshCw size={15} className={syncing ? "spin" : ""} />
+              {syncing ? "Syncing…" : "Sync Mail"}
+            </button>
+          )}
           {mode === "mail" && (
             <button className="compose-btn" onClick={() => setComposing(true)} title="Compose a new email">
               <PenSquare size={15} /> Compose

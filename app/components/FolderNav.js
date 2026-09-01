@@ -24,6 +24,8 @@ import {
   ChevronRight,
   ChevronDown,
   PenSquare,
+  CreditCard,
+  Landmark,
 } from "lucide-react";
 
 // Folder definitions. Categories roll up into the QRC framework:
@@ -60,12 +62,17 @@ export const FOLDERS = [
 
   { id: "spam", name: "Spam/unimportant", Icon: Ban, params: { category: "spam" }, countKey: "cat_spam", group: "other" },
   { id: "uncategorized", name: "Uncategorized", Icon: Inbox, params: { uncategorized: "true" }, countKey: "uncategorized_total", group: "other" },
+
+  // Partner / system senders — grouped by sender domain (mirror backend/src/partners.js)
+  { id: "partner_easebuzz", name: "Easebuzz", Icon: CreditCard, params: { partner: "easebuzz" }, countKey: "partner_easebuzz_total", unreadKey: "partner_easebuzz_unread", group: "partner" },
+  { id: "partner_rfspl", name: "RFSPL", Icon: Landmark, params: { partner: "rfspl" }, countKey: "partner_rfspl_total", unreadKey: "partner_rfspl_unread", group: "partner" },
 ];
 
 const MAIN = FOLDERS.filter((f) => f.group === "main");
 const STATUS = FOLDERS.filter((f) => f.group === "status");
 const QRC = FOLDERS.filter((f) => f.group === "qrc");
 const AUTOMATION = FOLDERS.filter((f) => f.group === "automation");
+const PARTNER = FOLDERS.filter((f) => f.group === "partner");
 const OTHER = FOLDERS.filter((f) => f.group === "other");
 const childrenOf = (code) =>
   FOLDERS.filter((f) => f.group === "child" && f.parent === code);
@@ -81,6 +88,7 @@ export default function FolderNav({ active, onSelect, counts, modules, onCompose
   const showStatus = can("mail.status");
   const showQrc = can("mail.qrc");
   const showAutomation = can("mail.automation");
+  const showPartners = can("mail.other");
   const showOther = can("mail.other");
 
   const badge = (f) => {
@@ -149,6 +157,9 @@ export default function FolderNav({ active, onSelect, counts, modules, onCompose
 
       {showAutomation && <div className="group-label">Automation</div>}
       {showAutomation && AUTOMATION.map((f) => folderBtn(f))}
+
+      {showPartners && <div className="group-label">Partners</div>}
+      {showPartners && PARTNER.map((f) => folderBtn(f))}
 
       {showOther && <div className="group-label">Other</div>}
       {showOther && OTHER.map((f) => folderBtn(f))}
