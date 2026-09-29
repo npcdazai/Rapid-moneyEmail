@@ -1,0 +1,48 @@
+/*
+ * RapidMoney theme — the single source of truth for colours.
+ * Every stylesheet and component references these tokens; change the brand
+ * here and it applies everywhere. Brand palette: #00F0FF · #E26D1A · #FFF.
+ */
+:root {
+  /* ── Brand ── */
+  --primary: #00f0ff;          /* cyan */
+  --primary-rgb: 0, 240, 255;  /* for rgba(var(--primary-rgb), a) */
+  --primary-2: #66f6ff;        /* lighter cyan (gradients) */
+  --primary-dark: #00808c;     /* readable cyan for text/icons on white */
+  --primary-ink: #04232a;      /* dark text on cyan */
+  --primary-50: #effeff;       /* soft tint */
+  --primary-100: #d9fcff;      /* selection / chips */
+  --primary-200: #b3f9ff;      /* tinted borders */
+
+  --accent: #e26d1a;           /* orange */
+  --accent-rgb: 226, 109, 26;
+  --accent-2: #f08c45;         /* lighter orange (gradients) */
+  --accent-dark: #b8540f;      /* readable orange on white */
+  --accent-50: #fdf1e8;
+
+  --white: #fff;
+
+  /* Dark chrome (ribbon, login backdrop) */
+  --ribbon-1: #03161b;
+  --ribbon-2: #0a3a44;
+
+  /* ── Neutrals ── */
+  --neutral-bg: #f5f9fa;
+  --panel: var(--white);
+  --surface-read: #fafcfc;
+  --border: #e3ebed;
+  --border-strong: #cbd8db;
+  --text: #16232a;
+  --body-text: #26343a;
+  --muted: #56666c;
+  --muted-2: #87969b;
+  --shadow-rgb: 4, 30, 38;
+
+  /* ── Semantic ── */
+  --p1: #d13438;
+  --p2: var(--accent);
+  --p3: var(--primary-dark);
+  --flag: #d13438;
+  --green: #1d8f1d;
+  --amber: #b88a00;
+}

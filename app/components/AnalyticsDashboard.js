@@ -28,8 +28,8 @@ import { initials, avatarColor, CATEGORIES, GROUPS } from "../../lib/format";
 const CAT_COLOR = Object.fromEntries(
   Object.entries(CATEGORIES).map(([k, v]) => [k, v.color])
 );
-CAT_COLOR.U = "#b0b8a6"; // uncategorized
-const PRIO_COLOR = { P1: "#d13438", P2: "#ca5010", P3: "#5d9e16" };
+CAT_COLOR.U = "var(--muted-2)"; // uncategorized
+const PRIO_COLOR = { P1: "var(--p1)", P2: "var(--p2)", P3: "var(--p3)" };
 
 function fmtDuration(mins) {
   if (mins == null) return "—";
@@ -64,7 +64,7 @@ function Donut({ data }) {
   return (
     <div className="donut-wrap">
       <svg viewBox="0 0 160 160" className="donut">
-        <circle cx="80" cy="80" r={R} fill="none" stroke="#eef1e7" strokeWidth="20" />
+        <circle cx="80" cy="80" r={R} fill="none" style={{ stroke: "var(--border)" }} strokeWidth="20" />
         {data.map((d, i) => {
           const frac = d.count / total;
           const len = frac * C;
@@ -75,7 +75,7 @@ function Donut({ data }) {
               cy="80"
               r={R}
               fill="none"
-              stroke={d.color}
+              style={{ stroke: d.color }}
               strokeWidth="20"
               strokeDasharray={`${len} ${C - len}`}
               strokeDashoffset={-offset}
@@ -148,7 +148,7 @@ function Trend({ daily }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="trend" preserveAspectRatio="none">
       {ticks.map((t, i) => (
         <g key={i}>
-          <line x1={pad.l} x2={W - pad.r} y1={y(t)} y2={y(t)} stroke="#eef1e7" />
+          <line x1={pad.l} x2={W - pad.r} y1={y(t)} y2={y(t)} style={{ stroke: "var(--border)" }} />
           <text x={4} y={y(t) + 4} className="axis">
             {t}
           </text>
@@ -156,16 +156,16 @@ function Trend({ daily }) {
       ))}
       <defs>
         <linearGradient id="recvFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(143,212,46,.35)" />
-          <stop offset="100%" stopColor="rgba(143,212,46,0)" />
+          <stop offset="0%" style={{ stopColor: "rgba(var(--primary-rgb), .35)" }} />
+          <stop offset="100%" style={{ stopColor: "rgba(var(--primary-rgb), 0)" }} />
         </linearGradient>
       </defs>
       <path d={area("received")} fill="url(#recvFill)" />
-      <path d={line("received")} fill="none" stroke="#6cae1d" strokeWidth="2.5" />
+      <path d={line("received")} fill="none" style={{ stroke: "var(--primary-dark)" }} strokeWidth="2.5" />
       <path
         d={line("resolved")}
         fill="none"
-        stroke="#0f9d8f"
+        style={{ stroke: "var(--accent)" }}
         strokeWidth="2"
         strokeDasharray="4 4"
       />
@@ -224,7 +224,7 @@ export default function AnalyticsDashboard() {
 
   const k = data.kpis;
   const catData = data.by_category
-    .map((c) => ({ ...c, color: CAT_COLOR[c.key] || "#b0b8a6" }))
+    .map((c) => ({ ...c, color: CAT_COLOR[c.key] || "var(--muted-2)" }))
     .sort((a, b) => b.count - a.count);
   const prioData = ["P1", "P2", "P3"].map((p) => ({
     label: p,
@@ -234,7 +234,7 @@ export default function AnalyticsDashboard() {
   const statusData = data.by_status.map((s) => ({
     label: s.status,
     count: s.count,
-    color: "#6cae1d",
+    color: "var(--primary-dark)",
   }));
   // QRC roll-up computed from the category breakdown
   const groupData = Object.entries(GROUPS).map(([g, meta]) => ({
@@ -247,23 +247,23 @@ export default function AnalyticsDashboard() {
 
   // ── Auto-reply analysis ──
   const ar = data.auto_reply || {};
-  const QRC_COLOR = { query: "#5d9e16", request: "#0f9d8f", complaint: "#d13438" };
+  const QRC_COLOR = { query: "var(--primary-dark)", request: "var(--accent)", complaint: "var(--p1)" };
   const titleCase = (s) =>
     (s || "").replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
   const arGroupBars = (ar.by_group || []).map((d) => ({
     label: titleCase(d.key),
     count: d.count,
-    color: QRC_COLOR[d.key] || "#6cae1d",
+    color: QRC_COLOR[d.key] || "var(--primary-dark)",
   }));
   const arRouteBars = (ar.by_route || []).map((d) => ({
     label: (d.key || "").split("@")[0],
     count: d.count,
-    color: "#6cae1d",
+    color: "var(--primary-dark)",
   }));
   const arSubcatBars = (ar.by_subcat || []).map((d) => ({
     label: titleCase(d.key),
     count: d.count,
-    color: "#0f9d8f",
+    color: "var(--accent)",
   }));
 
   return (
@@ -311,8 +311,8 @@ export default function AnalyticsDashboard() {
                 : "last 30 days"}
             </h3>
             <div className="legend-inline">
-              <span><i style={{ background: "#6cae1d" }} /> Received</span>
-              <span><i style={{ background: "#0f9d8f" }} /> Resolved</span>
+              <span><i style={{ background: "var(--primary-dark)" }} /> Received</span>
+              <span><i style={{ background: "var(--accent)" }} /> Resolved</span>
             </div>
           </div>
           <Trend daily={data.daily} />
