@@ -1129,3 +1129,12 @@ textarea:focus { border-color: var(--ol-blue); }
 }
 .ribbon .sync-btn:hover:not(:disabled) { background: rgba(255,255,255,.18); border-color: var(--rapid-green); }
 .ribbon .sync-btn:disabled { opacity: .6; cursor: default; }
+
+
+/* Live-connection indicator on the Sync Mail button */
+.ribbon .sync-btn .live-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, .35);
+}
+.ribbon .sync-btn .live-dot.on {
+  background: var(--rapid-green); box-shadow: 0 0 0 3px rgba(143, 212, 46, .25);
+}

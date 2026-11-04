@@ -20,6 +20,7 @@ import AllocationPanel from "./components/AllocationPanel";
 import CustomersPanel from "./components/CustomersPanel";
 import TemplatesPanel from "./components/TemplatesPanel";
 import { hasAnyMail, sectionForFolder } from "../lib/modules";
+import { useLiveMail } from "../lib/live";
 
 const PAGE_SIZE_OPTIONS = [50, 100, 200];
 const EMPTY_FILTERS = { status: "", priority: "", unread: false, from: "", to: "" };
@@ -245,6 +246,21 @@ export default function Dashboard() {
     return () => clearInterval(id);
   }, [refresh]);
 
+  // Live push: the backend sends an event per new ticket. Coalesce bursts
+  // (e.g. a backlog import) into one refresh, and toast only live mail.
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
+  const liveTimer = useRef(null);
+  const live = useLiveMail(
+    (ev) => {
+      if (ev.type !== "ticket.new") return;
+      if (ev.source === "live") flash(`New mail from ${ev.from_name || "a customer"}`);
+      clearTimeout(liveTimer.current);
+      liveTimer.current = setTimeout(() => refreshRef.current(), 800);
+    },
+    authChecked && hasMail
+  );
+
   const onSearchChange = (v) => {
     setSearch(v); // the debounce effect commits this to the query + resets page
   };
@@ -376,8 +392,13 @@ export default function Dashboard() {
               className="sync-btn"
               onClick={syncMail}
               disabled={syncing}
-              title="Sync mail — fetch newly-arrived emails from the inbox now"
+              title={
+                live
+                  ? "Live — new mail appears automatically. Click to force a sync now."
+                  : "Sync mail — fetch newly-arrived emails from the inbox now"
+              }
             >
+              <span className={`live-dot ${live ? "on" : ""}`} />
               <RefreshCw size={15} className={syncing ? "spin" : ""} />
               {syncing ? "Syncing…" : "Sync Mail"}
             </button>
