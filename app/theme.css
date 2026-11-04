@@ -1,0 +1,272 @@
+/*
+ * RapidMoney theme — the single source of truth for colours.
+ * Every stylesheet and component references these tokens; change the brand
+ * here and it applies everywhere. Brand palette: #8FD42E · #0F9D8F · #FFF.
+ *
+ * Structure (UI v2, docs/ui-v2.md):
+ *   1. --mh-* alias tokens with state suffixes (-hover / -selected / -soft / -text).
+ *   2. Legacy names (--text, --panel, …) point at the aliases; resolved values are
+ *      identical to the pre-v2 palette, so the classic layout renders unchanged.
+ *   3. Dark theme: <html data-theme="dark">, or the OS preference when the user has
+ *      not chosen ("mh_theme" absent). Both only apply under <html data-ui="v2">.
+ */
+:root {
+  /* ── RapidMoney Brand ── */
+  --rapid-green: #8fd42e;      /* primary lime */
+  --rapid-green-2: #a9e259;    /* lighter lime */
+  --rapid-green-dark: #6cae1d; /* hover / readable on white */
+  --rapid-ink: #11260f;        /* dark text on lime */
+
+  --ol-blue: #5d9e16;          /* readable green for icons/text on white */
+  --ol-blue-dark: #4c8211;
+  --ol-blue-light: #f0f8e2;    /* soft green tint */
+  --ol-sel: #eaf6d8;           /* selection background */
+  --ol-sel-bar: #8fd42e;
+
+  --primary: #8fd42e;          /* lime green */
+  --primary-rgb: 143, 212, 46; /* for rgba(var(--primary-rgb), a) */
+  --primary-2: #a9e259;        /* lighter lime (gradients) */
+  --primary-dark: var(--mh-accent);     /* readable green for text/icons on surfaces */
+  --primary-ink: #11260f;      /* dark text on lime */
+  --primary-50: var(--mh-accent-soft);       /* soft tint */
+  --primary-100: var(--mh-accent-selected);  /* selection / chips */
+  --primary-200: var(--mh-accent-border);    /* tinted borders */
+
+  --accent: #0f9d8f;           /* teal secondary accent */
+  --accent-rgb: 15, 157, 143;
+  --accent-2: #1ec2b2;         /* lighter teal (gradients) */
+  --accent-dark: var(--mh-orange-text);   /* readable accent on surfaces */
+  --accent-50: var(--mh-orange-soft);
+
+  --white: #fff;
+
+  /* Dark chrome (ribbon, login backdrop) — same in both themes */
+  --ribbon-1: #0a1c10;
+  --ribbon-2: #14361d;
+
+  /* ── Neutrals (legacy names → aliases) ── */
+  --neutral-bg: var(--mh-bg);
+  --panel: var(--mh-surface);
+  --surface: var(--mh-surface);
+  --surface-read: var(--mh-surface-read);
+  --hover-bg: var(--mh-surface-hover);
+  --count-bg: var(--mh-surface-2);
+  --chip-bg: var(--mh-surface-2);
+  --chip-bg-2: var(--mh-surface-3);
+  --chip-text: var(--mh-chip-text);
+  --chip-text-2: var(--mh-chip-text-2);
+  --border: var(--mh-border);
+  --border-strong: var(--mh-border-strong);
+  --text: var(--mh-text);
+  --body-text: var(--mh-text-body);
+  --body-ink: var(--mh-text-ink);
+  --muted: var(--mh-muted);
+  --muted-2: var(--mh-muted-2);
+  --shadow-rgb: var(--mh-shadow-rgb);
+  --note-bg: var(--mh-note-bg);
+  --toast-bg: var(--mh-toast-bg);
+  --toast-text: var(--mh-toast-text);
+
+  /* ── Semantic (legacy names → aliases) ── */
+  --p1: var(--mh-danger);
+  --p2: #ca5010;
+  --p3: var(--mh-accent);
+  --flag: var(--mh-danger);
+  --green: var(--mh-ok);
+  --amber: var(--mh-warn);
+  --danger-text: var(--mh-danger-text);
+  --danger-chip-text: var(--mh-danger-chip-text);
+  --danger-soft: var(--mh-danger-soft);
+  --danger-border: var(--mh-danger-border);
+  --danger-muted: var(--mh-danger-muted);
+  --alert-bg-1: var(--mh-alert-bg-1);
+  --alert-bg-2: var(--mh-alert-bg-2);
+  --warn-text: var(--mh-warn-text);
+  --warn-soft: var(--mh-warn-soft);
+  --ok-text: var(--mh-ok-text);
+  --ok-text-2: var(--mh-ok-text-2);
+  --ok-soft: var(--mh-ok-soft);
+  --ok-soft-2: var(--mh-ok-soft-2);
+  --info-text: var(--mh-info-text);
+  --info-soft: var(--mh-info-soft);
+
+  /* ════════ UI v2 alias tokens — LIGHT (RapidMoney green palette) ════════ */
+  --mh-bg: #f7faf1;
+  --mh-surface: #ffffff;
+  --mh-surface-hover: #f3f7ea;
+  --mh-surface-selected: #eaf6d8;
+  --mh-surface-read: #fbfcf8;
+  --mh-surface-2: #f3f2f1;          /* neutral chip / count pills */
+  --mh-surface-3: #ecefe9;          /* closed-status chip */
+  --mh-border: #e9eede;
+  --mh-border-strong: #d4dcc6;
+  --mh-text: #1c241a;
+  --mh-text-body: #2a3427;
+  --mh-text-ink: #323130;           /* email body */
+  --mh-muted: #5f6b58;
+  --mh-muted-2: #8b9582;            /* decorative labels only (see v2 override below) */
+  --mh-chip-text: #444444;
+  --mh-chip-text-2: #605e5c;
+  --mh-shadow-rgb: 17, 38, 15;
+  --mh-note-bg: #fffdf3;
+  --mh-toast-bg: #323130;
+  --mh-toast-text: #ffffff;
+
+  --mh-accent: #5d9e16;             /* readable RapidMoney green on light surfaces */
+  --mh-accent-hover: #4c8211;
+  --mh-accent-soft: #f0f8e2;
+  --mh-accent-selected: #eaf6d8;
+  --mh-accent-border: #d9eeae;
+  --mh-orange-text: #0f766e;
+  --mh-orange-soft: #e0f5f2;
+  --mh-focus: #5d9e16;
+
+  --mh-danger: #d13438;
+  --mh-danger-text: #b42121;
+  --mh-danger-chip-text: #d13438;      /* chip text on --mh-danger-soft */
+  --mh-danger-soft: #fdeeee;
+  --mh-danger-border: #f3c3c3;
+  --mh-danger-muted: #9a5b5b;
+  --mh-alert-bg-1: #fff6f6;
+  --mh-alert-bg-2: #fdeaea;
+  --mh-warn: #b88a00;
+  --mh-warn-text: #8a6d00;
+  --mh-warn-soft: #fff4ce;
+  --mh-ok: #4c8211;
+  --mh-ok-text: #107c10;
+  --mh-ok-text-2: #4c8211;
+  --mh-ok-soft: #e7f5e7;
+  --mh-ok-soft-2: #e7f5cd;
+  --mh-info-text: #2563c9;
+  --mh-info-soft: #e7eefb;
+
+  /* Devanagari-safe font slot (system fonts only — no web fonts, no CDN). */
+  --mh-font-devanagari: "Noto Sans Devanagari", "Nirmala UI", "Mangal";
+  --mh-font: system-ui, -apple-system, BlinkMacSystemFont, Roboto, "Noto Sans",
+    var(--mh-font-devanagari), Helvetica, Arial, sans-serif;
+}
+
+/* v2 light: small-text labels lifted to WCAG AA (4.5:1 on white). Classic keeps #8b9582. */
+:root[data-ui="v2"] {
+  --mh-muted-2: #66735f;
+  --mh-chip-text: #3d3d3d;
+  --mh-chip-text-2: #4a4a4a;
+  --mh-accent: #4c8211;
+  --mh-focus: #4c8211;
+  --mh-orange-text: #0f766e;
+  --mh-danger-chip-text: #b42121;
+  --mh-warn-text: #7a6000;
+  --mh-ok-text-2: #3b690c;
+}
+
+/* ════════ UI v2 — DARK (RapidMoney forest dark) ════════
+ * Two copies of the same block: an explicit choice (data-theme="dark") and the OS
+ * preference when nothing is stored. Both require the v2 flag. */
+:root[data-ui="v2"][data-theme="dark"] {
+  --mh-bg: #0c170f;
+  --mh-surface: #132217;
+  --mh-surface-hover: #1a2e1f;
+  --mh-surface-selected: #1e3b18;
+  --mh-surface-read: #101d13;
+  --mh-surface-2: #1f3324;
+  --mh-surface-3: #1b2d20;
+  --mh-border: #253b29;
+  --mh-border-strong: #35523a;
+  --mh-text: #e9f0e6;
+  --mh-text-body: #dde6d9;
+  --mh-text-ink: #dde6d9;
+  --mh-muted: #abb8a6;
+  --mh-muted-2: #9ba996;
+  --mh-chip-text: #d6e0d2;
+  --mh-chip-text-2: #cad4c6;
+  --mh-shadow-rgb: 0, 0, 0;
+  --mh-note-bg: #2a2614;
+  --mh-toast-bg: #e9f0e6;
+  --mh-toast-text: #0c170f;
+
+  --mh-accent: #8fd42e;
+  --mh-accent-hover: #a9e259;
+  --mh-accent-soft: #182e12;
+  --mh-accent-selected: #1e3b18;
+  --mh-accent-border: #3a681c;
+  --mh-orange-text: #5eead4;
+  --mh-orange-soft: #11332f;
+  --mh-focus: #8fd42e;
+
+  --mh-danger: #d13438;
+  --mh-danger-text: #ff8f8f;
+  --mh-danger-chip-text: #ff8f8f;
+  --mh-danger-soft: #3a1b1d;
+  --mh-danger-border: #6a2a2d;
+  --mh-danger-muted: #e0a3a3;
+  --mh-alert-bg-1: #2a1718;
+  --mh-alert-bg-2: #3a1b1d;
+  --mh-warn: #f2c14e;
+  --mh-warn-text: #f2c14e;
+  --mh-warn-soft: #332a10;
+  --mh-ok: #8fd42e;
+  --mh-ok-text: #a9e259;
+  --mh-ok-text-2: #a9e259;
+  --mh-ok-soft: #182e12;
+  --mh-ok-soft-2: #182e12;
+  --mh-info-text: #8db6ff;
+  --mh-info-soft: #16263d;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-ui="v2"]:not([data-theme="light"]) {
+    --mh-bg: #0c170f;
+    --mh-surface: #132217;
+    --mh-surface-hover: #1a2e1f;
+    --mh-surface-selected: #1e3b18;
+    --mh-surface-read: #101d13;
+    --mh-surface-2: #1f3324;
+    --mh-surface-3: #1b2d20;
+    --mh-border: #253b29;
+    --mh-border-strong: #35523a;
+    --mh-text: #e9f0e6;
+    --mh-text-body: #dde6d9;
+    --mh-text-ink: #dde6d9;
+    --mh-muted: #abb8a6;
+    --mh-muted-2: #9ba996;
+    --mh-chip-text: #d6e0d2;
+    --mh-chip-text-2: #cad4c6;
+    --mh-shadow-rgb: 0, 0, 0;
+    --mh-note-bg: #2a2614;
+    --mh-toast-bg: #e9f0e6;
+    --mh-toast-text: #0c170f;
+
+    --mh-accent: #8fd42e;
+    --mh-accent-hover: #a9e259;
+    --mh-accent-soft: #182e12;
+    --mh-accent-selected: #1e3b18;
+    --mh-accent-border: #3a681c;
+    --mh-orange-text: #5eead4;
+    --mh-orange-soft: #11332f;
+    --mh-focus: #8fd42e;
+
+    --mh-danger: #d13438;
+    --mh-danger-text: #ff8f8f;
+    --mh-danger-chip-text: #ff8f8f;
+    --mh-danger-soft: #3a1b1d;
+    --mh-danger-border: #6a2a2d;
+    --mh-danger-muted: #e0a3a3;
+    --mh-alert-bg-1: #2a1718;
+    --mh-alert-bg-2: #3a1b1d;
+    --mh-warn: #f2c14e;
+    --mh-warn-text: #f2c14e;
+    --mh-warn-soft: #332a10;
+    --mh-ok: #8fd42e;
+    --mh-ok-text: #a9e259;
+    --mh-ok-text-2: #a9e259;
+    --mh-ok-soft: #182e12;
+    --mh-ok-soft-2: #182e12;
+    --mh-info-text: #8db6ff;
+    --mh-info-soft: #16263d;
+  }
+}
+:root[data-ui="v2"][data-theme="dark"],
+:root[data-ui="v2"]:not([data-theme="light"]) { color-scheme: light; }
+:root[data-ui="v2"][data-theme="dark"] { color-scheme: dark; }
+@media (prefers-color-scheme: dark) {
+  :root[data-ui="v2"]:not([data-theme="light"]) { color-scheme: dark; }
+}

@@ -10,6 +10,7 @@ import {
   catLabel,
   catStyle,
 } from "../../lib/format";
+import { slaChip as slaChipV2 } from "../../lib/sla";
 
 const STATUS_OPTIONS = ["Open", "In Progress", "Resolved", "Closed"];
 const PRIORITY_OPTIONS = ["P1", "P2", "P3"];
@@ -35,6 +36,11 @@ export default function MessageList({
   pageSize,
   pageSizeOptions = [50, 100, 200],
   onPageSizeChange,
+  // ── UI v2 (all optional; classic markup is unchanged when v2 is false) ──
+  v2 = false,
+  cursorId = null, // keyboard cursor (may differ from the opened ticket)
+  scrollRef = null, // ref to the scroll container (focus restore)
+  onCursor, // (ticket) => void when a row receives focus
 }) {
   const [jump, setJump] = useState("");
   const goToJump = () => {
@@ -42,6 +48,109 @@ export default function MessageList({
     if (!Number.isNaN(n) && n >= 1 && n <= totalPages) onPageChange(n - 1);
     setJump("");
   };
+
+  // Roving tabindex: exactly one row is in the tab order.
+  const rovingId = cursorId ?? selectedId ?? tickets[0]?.id ?? null;
+
+  const renderRow = (t) => {
+    const chip = slaChip(t);
+    const chip2 = v2 ? slaChipV2(t) : null;
+    const name = t.from_name || t.from_email || "Unknown";
+    const isSel = selectedId === t.id;
+    const a11y = v2
+      ? {
+          role: "option",
+          "aria-selected": isSel,
+          tabIndex: rovingId === t.id ? 0 : -1,
+          "data-id": t.id,
+          onFocus: () => onCursor?.(t),
+          onKeyDown: (e) => {
+            // Enter/Space on a focused row opens it (arrow keys are handled by the shell).
+            if (e.key === " " ) {
+              e.preventDefault();
+              onSelect(t);
+            }
+          },
+        }
+      : {};
+    return (
+      <div
+        key={t.id}
+        className={`msg ${t.is_read ? "read" : "unread"} ${isSel ? "selected" : ""} ${
+          v2 && cursorId === t.id && !isSel ? "cursor" : ""
+        }`}
+        onClick={() => onSelect(t)}
+        {...a11y}
+      >
+        {!t.is_read && <span className="msg-ribbon">NEW</span>}
+        <div
+          className="avatar"
+          style={{ background: avatarColor(t.from_email || name) }}
+        >
+          {initials(name)}
+        </div>
+        <div className="msg-main">
+          <div className="msg-row1">
+            {!t.is_read && (
+              <span className="unread-dot" title="Unread" aria-label="Unread" />
+            )}
+            <span className="msg-from">{name}</span>
+            <span className="msg-time">{listTime(t.received_at)}</span>
+          </div>
+          <div className="msg-subject">
+            #{t.id} · {t.subject || "(no subject)"}
+          </div>
+          <div className="msg-snippet">{t.snippet || ""}</div>
+          <div className="msg-tags">
+            <span className={`chip prio ${t.priority}`}>
+              {t.priority}
+            </span>
+            <span
+              className={`chip status st-${(t.status || "")
+                .toLowerCase()
+                .replace(/\s+/g, "-")}`}
+            >
+              {t.status}
+            </span>
+            <span className="chip" style={catStyle(t.category)}>
+              {catLabel(t.category, true)}
+            </span>
+            {t.auto_replied && (
+              <span className="chip auto-replied" title="An automatic reply was sent for this email">
+                <Zap size={11} fill="currentColor" /> Auto-replied
+              </span>
+            )}
+            {v2
+              ? chip2.label && (
+                  <span
+                    className={`sla ${chip2.tone}`}
+                    title={chip2.dueAt ? `${chip2.basis === "tat" ? "TAT" : "SLA"} due ${new Date(chip2.dueAt).toLocaleString()}` : undefined}
+                  >
+                    {chip2.label}
+                  </span>
+                )
+              : (t.status === "Open" || t.status === "In Progress") && (
+                  <span className={`sla ${chip.cls}`}>{chip.text}</span>
+                )}
+          </div>
+        </div>
+        <button
+          className={`flag-btn ${t.flagged ? "on" : ""}`}
+          title={t.flagged ? "Unflag" : "Flag for follow-up"}
+          aria-label={t.flagged ? "Unflag" : "Flag for follow-up"}
+          aria-pressed={v2 ? !!t.flagged : undefined}
+          tabIndex={v2 ? -1 : undefined}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFlag(t);
+          }}
+        >
+          <Flag size={15} fill={t.flagged ? "currentColor" : "none"} />
+        </button>
+      </div>
+    );
+  };
+
   return (
     <section className="list-pane">
       <div className="list-head">
@@ -50,7 +159,7 @@ export default function MessageList({
           <div className="sub">{subtitle}</div>
         </div>
         <div className="list-tools">
-          <button title="Refresh" onClick={onRefresh}>
+          <button title="Refresh" aria-label="Refresh list" onClick={onRefresh}>
             <RefreshCw size={16} className={refreshing ? "spin" : ""} />
           </button>
         </div>
@@ -113,79 +222,23 @@ export default function MessageList({
         </div>
       )}
 
-      <div className="list-scroll">
+      {v2 && (
+        <h3 id="mh-msglist-heading" className="sr-only">
+          Messages in {title}. Use j and k or the arrow keys to move, Enter to open, ? for all shortcuts.
+        </h3>
+      )}
+
+      <div className="list-scroll" ref={scrollRef || undefined}>
         {loading ? (
-          <div className="loading">Loading…</div>
+          <div className="loading" role={v2 ? "status" : undefined}>Loading…</div>
         ) : tickets.length === 0 ? (
-          <div className="empty-list">No messages in this folder.</div>
+          <div className="empty-list" role={v2 ? "status" : undefined}>No messages in this folder.</div>
+        ) : v2 ? (
+          <div role="listbox" aria-labelledby="mh-msglist-heading" className="msg-listbox">
+            {tickets.map(renderRow)}
+          </div>
         ) : (
-          tickets.map((t) => {
-            const chip = slaChip(t);
-            const name = t.from_name || t.from_email || "Unknown";
-            return (
-              <div
-                key={t.id}
-                className={`msg ${t.is_read ? "read" : "unread"} ${
-                  selectedId === t.id ? "selected" : ""
-                }`}
-                onClick={() => onSelect(t)}
-              >
-                {!t.is_read && <span className="msg-ribbon">NEW</span>}
-                <div
-                  className="avatar"
-                  style={{ background: avatarColor(t.from_email || name) }}
-                >
-                  {initials(name)}
-                </div>
-                <div className="msg-main">
-                  <div className="msg-row1">
-                    {!t.is_read && (
-                      <span className="unread-dot" title="Unread" aria-label="Unread" />
-                    )}
-                    <span className="msg-from">{name}</span>
-                    <span className="msg-time">{listTime(t.received_at)}</span>
-                  </div>
-                  <div className="msg-subject">
-                    #{t.id} · {t.subject || "(no subject)"}
-                  </div>
-                  <div className="msg-snippet">{t.snippet || ""}</div>
-                  <div className="msg-tags">
-                    <span className={`chip prio ${t.priority}`}>
-                      {t.priority}
-                    </span>
-                    <span
-                      className={`chip status st-${(t.status || "")
-                        .toLowerCase()
-                        .replace(/\s+/g, "-")}`}
-                    >
-                      {t.status}
-                    </span>
-                    <span className="chip" style={catStyle(t.category)}>
-                      {catLabel(t.category, true)}
-                    </span>
-                    {t.auto_replied && (
-                      <span className="chip auto-replied" title="An automatic reply was sent for this email">
-                        <Zap size={11} fill="currentColor" /> Auto-replied
-                      </span>
-                    )}
-                    {(t.status === "Open" || t.status === "In Progress") && (
-                      <span className={`sla ${chip.cls}`}>{chip.text}</span>
-                    )}
-                  </div>
-                </div>
-                <button
-                  className={`flag-btn ${t.flagged ? "on" : ""}`}
-                  title={t.flagged ? "Unflag" : "Flag for follow-up"}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleFlag(t);
-                  }}
-                >
-                  <Flag size={15} fill={t.flagged ? "currentColor" : "none"} />
-                </button>
-              </div>
-            );
-          })
+          tickets.map(renderRow)
         )}
       </div>
 

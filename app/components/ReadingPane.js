@@ -31,6 +31,11 @@ import {
   CATEGORIES,
   CATEGORY_CODES,
 } from "../../lib/format";
+import { slaChip as slaChipV2 } from "../../lib/sla";
+import { mapThreadView, foldSummary } from "../../lib/threadFold";
+import { shortcuts } from "../../lib/shortcuts";
+import HtmlView, { loadTicketHtml, htmlViewAvailable } from "./HtmlView";
+import { getBodyView, setBodyView, otherBodyView, isTrustedSender } from "../../lib/htmlView";
 
 const STATUSES = [
   "Open",
@@ -40,8 +45,11 @@ const STATUSES = [
   "Closed",
 ];
 
-export default function ReadingPane({ ticketId, onChanged, onPatch, flash, canAutoReply = true }) {
+export default function ReadingPane({ ticketId, onChanged, onPatch, flash, canAutoReply = true, v2 = false }) {
   const [ticket, setTicket] = useState(null);
+  const statusRef = useRef(null);
+  const ticketRef = useRef(null);
+  ticketRef.current = ticket;
   const [note, setNote] = useState("");
   const [showReply, setShowReply] = useState(false);
   const [showNote, setShowNote] = useState(false);
@@ -83,6 +91,60 @@ export default function ReadingPane({ ticketId, onChanged, onPatch, flash, canAu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId]);
 
+  // Qwen shadow evaluation (AI prediction + unapproved draft; never sent).
+  const [aiEval, setAiEval] = useState(null);
+  useEffect(() => {
+    setAiEval(null);
+    api.aiEvaluation(ticketId).then((rows) => setAiEval(rows?.[0] || null)).catch(() => {});
+  }, [ticketId]);
+
+  // Inbound attachments (screenshots etc. the customer emailed). Images are
+  // fetched as blobs (the <img> tag can't send the auth header) and shown
+  // inline; other files get a download button.
+  const [inboundAtts, setInboundAtts] = useState([]);
+  useEffect(() => {
+    const urls = [];
+    let gone = false;
+    setInboundAtts([]);
+    api
+      .attachments(ticketId)
+      .then(async (list) => {
+        const out = [];
+        for (const a of list || []) {
+          let url = null;
+          if ((a.content_type || "").startsWith("image/")) {
+            try {
+              url = URL.createObjectURL(await api.attachmentBlob(ticketId, a.id));
+              urls.push(url);
+            } catch {
+              /* show as file instead */
+            }
+          }
+          out.push({ ...a, url });
+        }
+        if (!gone) setInboundAtts(out);
+      })
+      .catch(() => {});
+    return () => {
+      gone = true;
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [ticketId]);
+
+  const downloadAtt = async (a) => {
+    try {
+      const blob = await api.attachmentBlob(ticketId, a.id);
+      const u = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = u;
+      link.download = a.filename || "attachment";
+      link.click();
+      URL.revokeObjectURL(u);
+    } catch (e) {
+      flash(`Error: ${e.message}`);
+    }
+  };
+
   const guard = async (fn) => {
     setBusy(true);
     try {
@@ -96,9 +158,161 @@ export default function ReadingPane({ ticketId, onChanged, onPatch, flash, canAu
     }
   };
 
+  // ── UI v2: display-only quote folding (GET /:id/thread) ──
+  // The stored body is never changed; on any failure we fall back to it.
+  const [thread, setThread] = useState(null);
+  const [quotesOpen, setQuotesOpen] = useState({ value: false, n: 0 });
+  useEffect(() => {
+    setThread(null);
+    setQuotesOpen({ value: false, n: 0 });
+    if (!v2) return;
+    let gone = false;
+    api
+      .getThread(ticketId)
+      .then((p) => {
+        if (!gone) setThread(p && typeof p === "object" ? p : null);
+      })
+      .catch(() => {
+        if (!gone) setThread(null); // 404 (disabled) or network: plain body
+      });
+    return () => {
+      gone = true;
+    };
+  }, [ticketId, v2]);
+
+  // ── UI v2: sandboxed HTML view (GET /:id/html) — "Text | HTML" control ──
+  // Preference is per user (localStorage mh_body_view, "text" by default) and
+  // read after mount. The HTML is fetched lazily: when the ticket has loaded
+  // AND the preference is HTML (or when the user clicks HTML), plus one probe
+  // per session so a disabled backend hides the control everywhere. Any
+  // failure keeps the text/thread view; no toast.
+  const [bodyView, setBodyViewState] = useState("text");
+  const bodyViewRef = useRef("text");
+  bodyViewRef.current = bodyView;
+  const [htmlState, setHtmlState] = useState({ status: "idle", data: null, images: false });
+  const htmlReq = useRef(0);
+  useEffect(() => {
+    if (!v2) return;
+    const v = getBodyView();
+    setBodyViewState(v);
+    bodyViewRef.current = v;
+  }, [v2]);
+
+  const fetchHtml = (images) => {
+    const t = ticketRef.current;
+    if (!t) return;
+    const seq = ++htmlReq.current;
+    const wantImages = !!images || isTrustedSender(t.from_email);
+    setHtmlState((h) => ({ ...h, status: "loading" }));
+    loadTicketHtml(t.id, { images: wantImages }).then((r) => {
+      if (seq !== htmlReq.current) return; // ticket changed meanwhile
+      if (r.status === "ok") setHtmlState({ status: "ok", data: r.data, images: wantImages });
+      else setHtmlState({ status: r.status, data: null, images: wantImages });
+    });
+  };
+  const fetchHtmlRef = useRef(fetchHtml);
+  fetchHtmlRef.current = fetchHtml;
+
+  useEffect(() => {
+    htmlReq.current++;
+    setHtmlState({ status: "idle", data: null, images: false });
+    if (!v2 || !ticket) return;
+    const avail = htmlViewAvailable();
+    if (avail === false) return;
+    if (bodyViewRef.current === "html" || avail === null) fetchHtmlRef.current(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [v2, ticket?.id]);
+
+  const chooseBodyView = (v) => {
+    const next = setBodyView(v);
+    setBodyViewState(next);
+    bodyViewRef.current = next;
+    if (next === "html") {
+      setHtmlState((h) => {
+        if (h.status === "idle" || h.status === "error") setTimeout(() => fetchHtmlRef.current(false), 0);
+        return h;
+      });
+    }
+  };
+  const chooseBodyViewRef = useRef(chooseBodyView);
+  chooseBodyViewRef.current = chooseBodyView;
+
+  const htmlControlVisible = v2 && htmlViewAvailable() !== false && htmlState.status !== "none" && htmlState.status !== "disabled";
+  const showHtml = htmlControlVisible && bodyView === "html" && htmlState.status === "ok" && htmlState.data;
+
+  // ── UI v2: pane-scoped shortcuts (r reply, s status, b quotes, f flag, u read, h html) ──
+  const guardRef = useRef(guard);
+  guardRef.current = guard;
+  useEffect(() => {
+    if (!v2) return;
+    const off = [
+      shortcuts.bind(
+        "h",
+        () => chooseBodyViewRef.current(otherBodyView(bodyViewRef.current)),
+        { description: "Toggle Text / HTML view", group: "Message" }
+      ),
+      shortcuts.bind(
+        "r",
+        () => {
+          setShowReply(true);
+          setTimeout(() => editorRef.current?.focus(), 0);
+        },
+        { description: "Reply (focus the editor)", group: "Message" }
+      ),
+      shortcuts.bind(
+        "s",
+        () => {
+          const el = statusRef.current;
+          if (!el) return;
+          el.focus();
+          try {
+            if (typeof el.showPicker === "function") el.showPicker();
+          } catch {
+            /* showPicker needs a user gesture in some browsers — focus is enough */
+          }
+        },
+        { description: "Change status", group: "Message" }
+      ),
+      shortcuts.bind(
+        "b",
+        () => setQuotesOpen((q) => ({ value: !q.value, n: q.n + 1 })),
+        { description: "Show / hide quoted text", group: "Message" }
+      ),
+      shortcuts.bind(
+        "f",
+        () => {
+          const t = ticketRef.current;
+          if (!t) return;
+          guardRef.current(async () => {
+            await api.setFlag(t.id, !t.flagged);
+            flash(t.flagged ? "Flag cleared" : "Flagged");
+          });
+        },
+        { description: "Flag / unflag", group: "Message" }
+      ),
+      shortcuts.bind(
+        "u",
+        () => {
+          const t = ticketRef.current;
+          if (!t) return;
+          guardRef.current(async () => {
+            await api.setRead(t.id, !t.is_read);
+            onPatch?.(t.id, { is_read: !t.is_read });
+            flash(t.is_read ? "Marked unread" : "Marked read");
+          });
+        },
+        { description: "Mark read / unread", group: "Message" }
+      ),
+    ];
+    return () => off.forEach((fn) => fn());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [v2, ticketId]);
+
+  const paneAttrs = v2 ? { id: "mh-reading-pane", tabIndex: -1, "aria-label": "Message" } : {};
+
   if (!ticket) {
     return (
-      <section className="reading empty">
+      <section className="reading empty" {...paneAttrs}>
         <div className="empty-card">
           <div className="big">
             <Mail size={38} />
@@ -110,6 +324,8 @@ export default function ReadingPane({ ticketId, onChanged, onPatch, flash, canAu
   }
 
   const chip = slaChip(ticket);
+  const chip2 = v2 ? slaChipV2(ticket) : null;
+  const view = v2 && thread ? mapThreadView(thread, ticket) : null;
   const name = ticket.from_name || ticket.from_email || "Unknown";
   const isResolved = ticket.status === "Resolved" || ticket.status === "Closed";
 
@@ -196,7 +412,7 @@ export default function ReadingPane({ ticketId, onChanged, onPatch, flash, canAu
   };
 
   return (
-    <section className="reading">
+    <section className="reading" {...paneAttrs}>
       <div className="read-toolbar">
         <button
           className="tool primary"
@@ -274,6 +490,8 @@ export default function ReadingPane({ ticketId, onChanged, onPatch, flash, canAu
         <span className="tool-sep" />
 
         <select
+          ref={statusRef}
+          aria-label="Status"
           value={ticket.status}
           disabled={busy}
           onChange={(e) =>
@@ -324,6 +542,27 @@ export default function ReadingPane({ ticketId, onChanged, onPatch, flash, canAu
           <option value="P2">P2 · 24h</option>
           <option value="P3">P3 · 48h</option>
         </select>
+        {htmlControlVisible && (
+          <div className="body-seg" role="group" aria-label="Body view" aria-busy={htmlState.status === "loading"}>
+            <button
+              type="button"
+              className={bodyView === "text" ? "on" : ""}
+              aria-pressed={bodyView === "text"}
+              onClick={() => chooseBodyView("text")}
+            >
+              Text
+            </button>
+            <button
+              type="button"
+              className={bodyView === "html" ? "on" : ""}
+              aria-pressed={bodyView === "html"}
+              title="Sandboxed HTML view (h)"
+              onClick={() => chooseBodyView("html")}
+            >
+              HTML
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="read-body">
@@ -343,9 +582,18 @@ export default function ReadingPane({ ticketId, onChanged, onPatch, flash, canAu
           <div className="when">
             {fmtDate(ticket.received_at)}
             <br />
-            {(ticket.status === "Open" || ticket.status === "In Progress") && (
-              <span className={`sla ${chip.cls}`}>{chip.text}</span>
-            )}
+            {v2
+              ? chip2.label && (
+                  <span
+                    className={`sla ${chip2.tone}`}
+                    title={chip2.dueAt ? `${chip2.basis === "tat" ? "TAT" : "SLA"} due ${new Date(chip2.dueAt).toLocaleString()}` : undefined}
+                  >
+                    {chip2.label}
+                  </span>
+                )
+              : (ticket.status === "Open" || ticket.status === "In Progress") && (
+                  <span className={`sla ${chip.cls}`}>{chip.text}</span>
+                )}
           </div>
         </div>
 
@@ -414,22 +662,115 @@ export default function ReadingPane({ ticketId, onChanged, onPatch, flash, canAu
           )}
         </div>
 
-        <div className="email-body">{ticket.body}</div>
+        {showHtml ? (
+          <HtmlView
+            ticketId={ticket.id}
+            senderEmail={ticket.from_email}
+            data={htmlState.data}
+            images={htmlState.images}
+            loading={htmlState.status === "loading"}
+            onImages={() => fetchHtml(true)}
+          />
+        ) : view ? (
+          <>
+            <div className="email-body">{view.newest}</div>
+            {view.folds.length > 0 && (
+              <div className="quote-folds">
+                {view.folds.map((f, i) => (
+                  <QuotedBlock key={i} fold={f} all={quotesOpen} />
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="email-body">{ticket.body}</div>
+        )}
+
+        {/* {aiEval && !aiEval.error && (
+          <div className="section ai-eval">
+            <h3>
+               <span className="ai-tag">NOT sent</span>
+            </h3>
+            <div className="ai-meta">
+              Predicts <b>{aiEval.intent}/{aiEval.category}</b>
+              {aiEval.production_category
+                ? aiEval.matches_production
+                  ? " — agrees with production"
+                  : ` — production said ${aiEval.production_category}`
+                : ""}
+              {" · "}confidence {Number(aiEval.confidence ?? 0).toFixed(2)}
+              {aiEval.requires_human ? " · needs human" : ""}
+              {aiEval.duration_ms ? ` · ${(aiEval.duration_ms / 1000).toFixed(1)}s` : ""}
+            </div>
+            {aiEval.summary && <div className="ai-summary">{aiEval.summary}</div>}
+            {aiEval.proposed_answer && (
+              <div className="ai-draft">
+                <div className="ai-draft-label">
+                  Unapproved AI draft (grounded in KB: {aiEval.kb_intent}) — review before any use
+                </div>
+                <div className="txt">{aiEval.proposed_answer}</div>
+              </div>
+            )}
+          </div>
+        )} */}
+
+        {inboundAtts.length > 0 && (
+          <div className="section">
+            <h3>Attachments from customer ({inboundAtts.length})</h3>
+            <div className="inbound-atts">
+              {inboundAtts.map((a) =>
+                a.url ? (
+                  <a
+                    key={a.id}
+                    className="att-thumb"
+                    href={a.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={a.filename || "image"}
+                  >
+                    <img src={a.url} alt={a.filename || "attachment"} />
+                  </a>
+                ) : (
+                  <button key={a.id} className="att-file" onClick={() => downloadAtt(a)}>
+                    📎 {a.filename || "attachment"}
+                    {a.size_bytes ? ` (${Math.max(1, Math.round(a.size_bytes / 1024))} KB)` : ""}
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+        )}
 
         {ticket.replies?.length > 0 && (
           <div className="section">
             <h3>Conversation</h3>
-            {ticket.replies.map((r) => (
-              <div key={r.id} className={`thread-item ${r.direction}`}>
-                <div className="meta">
-                  {r.direction === "outbound" ? "↗ Sent" : "↘ Received"} ·{" "}
-                  {r.sent_by || r.from_email} · {fmtDate(r.sent_at)}
+            {ticket.replies.map((r) => {
+              const rv = view?.byReply.get(String(r.id));
+              return (
+                <div key={r.id} className={`thread-item ${r.direction}`}>
+                  <div className="meta">
+                    {r.direction === "outbound" ? "↗ Sent" : "↘ Received"} ·{" "}
+                    {r.sent_by || r.from_email} · {fmtDate(r.sent_at)}
+                  </div>
+                  {rv ? (
+                    <>
+                      <div className="txt">{rv.newest}</div>
+                      {rv.folds.map((f, i) => (
+                        <QuotedBlock key={i} fold={f} all={quotesOpen} />
+                      ))}
+                    </>
+                  ) : (
+                    <div className="txt">{r.body}</div>
+                  )}
                 </div>
-                <div className="txt">{r.body}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
+
+        {/* UI v2 + autoreply module: compliance composer draft (SHADOW — review only,
+            never sent, never copied into the reply editor). Hides itself when the
+            backend route/flag/migration is absent. */}
 
         <div className="section">
           <h3>Internal notes</h3>
@@ -572,5 +913,25 @@ export default function ReadingPane({ ticketId, onChanged, onPatch, flash, canAu
         </div>
       )}
     </section>
+  );
+}
+
+// Native <details> fold for one quoted-history segment. Each block keeps its
+// own open state (click the summary); the `b` shortcut flips all of them via
+// the shared `all` token from the pane.
+function QuotedBlock({ fold, all }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    setOpen(all.value);
+  }, [all]);
+  return (
+    <details
+      className="quote-fold"
+      open={open}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+    >
+      <summary>{foldSummary(fold)}</summary>
+      <div className="quote-text">{fold.text}</div>
+    </details>
   );
 }
